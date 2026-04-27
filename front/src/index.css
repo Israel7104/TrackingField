@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+:root {
+  --text: #5b4d45;
+  --text-h: #201815;
+  --muted-strong: #7b6055;
+  --bg: #f6efe7;
+  --surface: rgba(255, 252, 247, 0.84);
+  --border: rgba(91, 57, 45, 0.14);
+  --accent: #b54730;
+  --shadow: 0 20px 60px rgba(76, 46, 31, 0.08);
+  --sans: 'Manrope', sans-serif;
+  --heading: 'Space Grotesk', sans-serif;
+
+  font: 18px/1.55 var(--sans);
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top, rgba(255, 204, 170, 0.48), transparent 32%),
+    linear-gradient(180deg, #fdf8f3, #f6efe7 48%, #efe6db);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 90%);
+}
+
+#root {
+  width: min(1200px, calc(100% - 24px));
+  margin: 12px auto;
+  min-height: calc(100svh - 24px);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--text-h);
+  font-family: var(--heading);
+  line-height: 1;
+}
+
+h1 {
+  margin-bottom: 1.25rem;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  letter-spacing: -0.05em;
+}
+
+h2 {
+  font-size: clamp(2rem, 3vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+h3 {
+  font-size: 1.6rem;
+  letter-spacing: -0.04em;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    font-size: 16px;
+  }
+
+  #root {
+    width: min(100%, calc(100% - 16px));
+    margin: 8px auto;
+    min-height: calc(100svh - 16px);
+  }
+}
