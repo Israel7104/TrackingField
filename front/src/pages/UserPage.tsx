@@ -9,6 +9,7 @@ export default function UserPage() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '' })
   const [authError, setAuthError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const {
     foods,
     exercises,
@@ -16,6 +17,8 @@ export default function UserPage() {
     diets,
     totals,
     sessionUser,
+    isAuthBootstrapping,
+    isFirebaseConfigured,
     login,
     register,
     logout,
@@ -23,29 +26,62 @@ export default function UserPage() {
 
   const avgKcal = Math.round(totals.calories / Math.max(foods.length, 1))
 
-  function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const ok = login(loginForm.email, loginForm.password)
+
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    const ok = await login(loginForm.email, loginForm.password)
+
     if (!ok) {
-      setAuthError('Correo o contrasena incorrectos.')
+      setAuthError(
+        isFirebaseConfigured
+          ? 'Correo o contrasena incorrectos.'
+          : 'Firebase no esta configurado. Revisa las variables VITE_FIREBASE_*.',
+      )
+      setIsSubmitting(false)
       return
     }
 
     setAuthError('')
     setLoginForm({ email: '', password: '' })
+    setIsSubmitting(false)
   }
 
-  function handleRegister(event: FormEvent<HTMLFormElement>) {
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const result = register(registerForm.name, registerForm.email, registerForm.password)
+
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    const result = await register(registerForm.name, registerForm.email, registerForm.password)
 
     if (!result.ok) {
       setAuthError(result.message ?? 'No se pudo crear la cuenta.')
+      setIsSubmitting(false)
       return
     }
 
     setAuthError('')
     setRegisterForm({ name: '', email: '', password: '' })
+    setIsSubmitting(false)
+  }
+
+  if (isAuthBootstrapping) {
+    return (
+      <main className="page-shell">
+        <section className="module-card user-card">
+          <p className="eyebrow">Autenticacion</p>
+          <h2>Conectando con Firebase</h2>
+          <p>Esperando el estado inicial de autenticacion.</p>
+        </section>
+      </main>
+    )
   }
 
   if (!sessionUser) {
@@ -112,7 +148,7 @@ export default function UserPage() {
                   />
                 </label>
                 <button type="submit" className="form-action">
-                  Entrar
+                  {isSubmitting ? 'Entrando...' : 'Entrar'}
                 </button>
               </form>
             ) : (
@@ -156,16 +192,18 @@ export default function UserPage() {
                   />
                 </label>
                 <button type="submit" className="form-action">
-                  Crear cuenta y entrar
+                  {isSubmitting ? 'Creando cuenta...' : 'Crear cuenta y entrar'}
                 </button>
               </form>
             )}
 
             {authError && <p className="auth-error">{authError}</p>}
 
-            <p className="auth-demo-note">
-              Demo rapido: demo@trackingfield.app / demo1234
-            </p>
+            {!isFirebaseConfigured ? (
+              <p className="auth-demo-note">
+                Falta configurar Firebase en el frontend. Define las variables `VITE_FIREBASE_*`.
+              </p>
+            ) : null}
           </article>
         </section>
       </main>

@@ -33,23 +33,28 @@ En otra terminal:
 ```bash
 cd front
 npm install
+cp .env.example .env
 npm run dev
 ```
 
 Después abre en el navegador la URL que muestre Vite, normalmente `http://localhost:5173`.
 
+Antes de iniciar sesión o crear usuario, completa en `front/.env` tus credenciales de Firebase:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_APP_ID`
+
+Guia completa paso a paso: [docs/firebase-auth.md](docs/firebase-auth.md)
+
 ## Uso básico
 
 1. Entra en la página de usuario.
-2. Inicia sesión con la cuenta demo.
+2. Crea un usuario o inicia sesión con Firebase.
 3. Accede a nutrición para añadir alimentos o crear dietas.
 4. Accede a entrenamientos para añadir ejercicios o crear rutinas.
 5. Vuelve al inicio para ver el resumen general.
-
-## Cuenta demo
-
-- Correo: `demo@trackingfield.app`
-- Contraseña: `demo1234`
 
 ## Nota
 

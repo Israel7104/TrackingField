@@ -9,12 +9,12 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth'
 import { apiClient } from '../api/client'
-import { usePersistentState } from '../hooks/usePersistentState'
+import { auth } from '../firebase/config'
 import { foodTotals } from '../types'
 import type {
   ApiFeedbackState,
-  AuthAccount,
   DashboardData,
   Diet,
   ExerciseEntry,
@@ -35,11 +35,13 @@ type AppContextValue = {
   diets: Diet[]
   totals: ReturnType<typeof foodTotals>
   isBootstrapping: boolean
+  isAuthBootstrapping: boolean
+  isFirebaseConfigured: boolean
   networkState: ApiFeedbackState
   networkMessage: string
   sessionUser: SessionUser | null
-  login: (email: string, password: string) => boolean
-  register: (name: string, email: string, password: string) => RegisterResult
+  login: (email: string, password: string) => Promise<boolean>
+  register: (name: string, email: string, password: string) => Promise<RegisterResult>
   logout: () => void
   refreshData: () => Promise<void>
   addFood: (food: NewFoodEntry) => Promise<void>
@@ -52,19 +54,44 @@ type AppContextValue = {
   addExerciseToRoutine: (routineId: number, exercise: NewExerciseEntry) => Promise<void>
 }
 
-const AUTH_USERS_KEY = 'trackingfield.auth.accounts'
-const AUTH_SESSION_KEY = 'trackingfield.auth.session'
-
-const defaultAccounts: AuthAccount[] = [
-  {
-    id: 1,
-    name: 'Demo TrackingField',
-    email: 'demo@trackingfield.app',
-    password: 'demo1234',
-  },
-]
-
 const AppContext = createContext<AppContextValue | null>(null)
+
+function resolveSessionName(displayName: string | null, email: string | null) {
+  const normalizedDisplayName = displayName?.trim()
+
+  if (normalizedDisplayName) {
+    return normalizedDisplayName
+  }
+
+  if (email) {
+    return email.split('@')[0]
+  }
+
+  return 'Usuario'
+}
+
+function mapAuthErrorToMessage(error: unknown) {
+  if (typeof error !== 'object' || error === null || !('code' in error)) {
+    return 'No se pudo completar la autenticacion.'
+  }
+
+  const code = String(error.code)
+
+  switch (code) {
+    case 'auth/email-already-in-use':
+      return 'Ese correo ya esta registrado.'
+    case 'auth/invalid-email':
+      return 'El correo no es valido.'
+    case 'auth/weak-password':
+      return 'La contrasena debe tener al menos 6 caracteres.'
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Correo o contrasena incorrectos.'
+    default:
+      return 'No se pudo completar la autenticacion.'
+  }
+}
 
 function withNewestFirst<T extends { id: number }>(items: T[]) {
   return [...items].sort((left, right) => right.id - left.id)
@@ -76,10 +103,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [routines, setRoutines] = useState<Routine[]>([])
   const [diets, setDiets] = useState<Diet[]>([])
   const [isBootstrapping, setIsBootstrapping] = useState(true)
+  const isFirebaseConfigured = Boolean(auth)
+  const [isAuthBootstrapping, setIsAuthBootstrapping] = useState(Boolean(auth))
   const [networkState, setNetworkState] = useState<ApiFeedbackState>('idle')
   const [networkMessage, setNetworkMessage] = useState('')
-  const [accounts, setAccounts] = usePersistentState<AuthAccount[]>(AUTH_USERS_KEY, defaultAccounts)
-  const [sessionUser, setSessionUser] = usePersistentState<SessionUser | null>(AUTH_SESSION_KEY, null)
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
 
   const applyDashboardData = useCallback((payload: DashboardData) => {
     setFoods(withNewestFirst(payload.foods))
@@ -109,6 +137,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const payload = await runRequest(() => apiClient.getDashboard(), 'Datos cargados desde la API.')
     applyDashboardData(payload)
   }, [applyDashboardData, runRequest])
+
+  useEffect(() => {
+    if (!auth) {
+      return
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user || !user.email) {
+        setSessionUser(null)
+        setIsAuthBootstrapping(false)
+        return
+      }
+
+      setSessionUser({
+        name: resolveSessionName(user.displayName, user.email),
+        email: user.email,
+      })
+      setIsAuthBootstrapping(false)
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -147,51 +199,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [applyDashboardData])
 
   const login = useCallback(
-    (email: string, password: string) => {
-      const normalizedEmail = email.trim().toLowerCase()
-      const account = accounts.find(
-        (candidate) =>
-          candidate.email.toLowerCase() === normalizedEmail && candidate.password === password,
-      )
-
-      if (!account) {
+    async (email: string, password: string) => {
+      if (!auth) {
         return false
       }
 
-      setSessionUser({ name: account.name, email: account.email })
-      return true
+      try {
+        const credentials = await signInWithEmailAndPassword(auth, email.trim(), password)
+        setSessionUser({
+          name: resolveSessionName(credentials.user.displayName, credentials.user.email),
+          email: credentials.user.email ?? email.trim(),
+        })
+        return true
+      } catch {
+        return false
+      }
     },
-    [accounts, setSessionUser],
+    [],
   )
 
   const register = useCallback(
-    (name: string, email: string, password: string): RegisterResult => {
-      const normalizedEmail = email.trim().toLowerCase()
-      const duplicated = accounts.some(
-        (candidate) => candidate.email.toLowerCase() === normalizedEmail,
-      )
-
-      if (duplicated) {
-        return { ok: false, message: 'Ese correo ya esta registrado.' }
+    async (name: string, email: string, password: string): Promise<RegisterResult> => {
+      if (!auth) {
+        return { ok: false, message: 'Firebase no esta configurado en este entorno.' }
       }
 
-      const nextAccount: AuthAccount = {
-        id: Date.now(),
-        name: name.trim(),
-        email: normalizedEmail,
-        password,
-      }
+      try {
+        const normalizedName = name.trim()
+        const credentials = await createUserWithEmailAndPassword(auth, email.trim(), password)
 
-      setAccounts((prev) => [nextAccount, ...prev])
-      setSessionUser({ name: nextAccount.name, email: nextAccount.email })
-      return { ok: true }
+        if (normalizedName) {
+          await updateProfile(credentials.user, { displayName: normalizedName })
+        }
+
+        setSessionUser({
+          name: resolveSessionName(normalizedName, credentials.user.email),
+          email: credentials.user.email ?? email.trim(),
+        })
+        return { ok: true }
+      } catch (error) {
+        return { ok: false, message: mapAuthErrorToMessage(error) }
+      }
     },
-    [accounts, setAccounts, setSessionUser],
+    [],
   )
 
   const logout = useCallback(() => {
+    if (auth) {
+      void signOut(auth)
+    }
+
     setSessionUser(null)
-  }, [setSessionUser])
+  }, [])
 
   const addFood = useCallback(
     async (food: NewFoodEntry) => {
@@ -287,6 +346,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       diets,
       totals,
       isBootstrapping,
+      isAuthBootstrapping,
+      isFirebaseConfigured,
       networkState,
       networkMessage,
       sessionUser,
@@ -310,6 +371,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       diets,
       totals,
       isBootstrapping,
+      isAuthBootstrapping,
+      isFirebaseConfigured,
       networkState,
       networkMessage,
       sessionUser,
