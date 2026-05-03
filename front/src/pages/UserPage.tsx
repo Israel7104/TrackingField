@@ -17,8 +17,6 @@ export default function UserPage() {
     diets,
     totals,
     sessionUser,
-    isAuthBootstrapping,
-    isFirebaseConfigured,
     login,
     register,
     logout,
@@ -37,11 +35,7 @@ export default function UserPage() {
     const ok = await login(loginForm.email, loginForm.password)
 
     if (!ok) {
-      setAuthError(
-        isFirebaseConfigured
-          ? 'Correo o contrasena incorrectos.'
-          : 'Firebase no esta configurado. Revisa las variables VITE_FIREBASE_*.',
-      )
+        setAuthError('Correo o contrasena incorrectos.')
       setIsSubmitting(false)
       return
     }
@@ -70,18 +64,6 @@ export default function UserPage() {
     setAuthError('')
     setRegisterForm({ name: '', email: '', password: '' })
     setIsSubmitting(false)
-  }
-
-  if (isAuthBootstrapping) {
-    return (
-      <main className="page-shell">
-        <section className="module-card user-card">
-          <p className="eyebrow">Autenticacion</p>
-          <h2>Conectando con Firebase</h2>
-          <p>Esperando el estado inicial de autenticacion.</p>
-        </section>
-      </main>
-    )
   }
 
   if (!sessionUser) {
@@ -199,11 +181,6 @@ export default function UserPage() {
 
             {authError && <p className="auth-error">{authError}</p>}
 
-            {!isFirebaseConfigured ? (
-              <p className="auth-demo-note">
-                Falta configurar Firebase en el frontend. Define las variables `VITE_FIREBASE_*`.
-              </p>
-            ) : null}
           </article>
         </section>
       </main>

@@ -9,9 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth'
 import { apiClient } from '../api/client'
-import { auth } from '../firebase/config'
 import { foodTotals } from '../types'
 import type {
   ApiFeedbackState,
@@ -28,6 +26,40 @@ import type {
   SessionUser,
 } from '../types'
 
+const STORAGE_ACCOUNTS = 'tf_accounts'
+const STORAGE_SESSION = 'tf_session'
+
+type StoredAccount = { name: string; email: string; password: string }
+
+function loadAccounts(): StoredAccount[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_ACCOUNTS) ?? '[]') as StoredAccount[]
+  } catch {
+    return []
+  }
+}
+
+function saveAccounts(accounts: StoredAccount[]) {
+  localStorage.setItem(STORAGE_ACCOUNTS, JSON.stringify(accounts))
+}
+
+function loadSession(): SessionUser | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_SESSION)
+    return raw ? (JSON.parse(raw) as SessionUser) : null
+  } catch {
+    return null
+  }
+}
+
+function saveSession(user: SessionUser | null) {
+  if (user) {
+    localStorage.setItem(STORAGE_SESSION, JSON.stringify(user))
+  } else {
+    localStorage.removeItem(STORAGE_SESSION)
+  }
+}
+
 type AppContextValue = {
   foods: FoodEntry[]
   exercises: ExerciseEntry[]
@@ -35,8 +67,6 @@ type AppContextValue = {
   diets: Diet[]
   totals: ReturnType<typeof foodTotals>
   isBootstrapping: boolean
-  isAuthBootstrapping: boolean
-  isFirebaseConfigured: boolean
   networkState: ApiFeedbackState
   networkMessage: string
   sessionUser: SessionUser | null
@@ -56,43 +86,6 @@ type AppContextValue = {
 
 const AppContext = createContext<AppContextValue | null>(null)
 
-function resolveSessionName(displayName: string | null, email: string | null) {
-  const normalizedDisplayName = displayName?.trim()
-
-  if (normalizedDisplayName) {
-    return normalizedDisplayName
-  }
-
-  if (email) {
-    return email.split('@')[0]
-  }
-
-  return 'Usuario'
-}
-
-function mapAuthErrorToMessage(error: unknown) {
-  if (typeof error !== 'object' || error === null || !('code' in error)) {
-    return 'No se pudo completar la autenticacion.'
-  }
-
-  const code = String(error.code)
-
-  switch (code) {
-    case 'auth/email-already-in-use':
-      return 'Ese correo ya esta registrado.'
-    case 'auth/invalid-email':
-      return 'El correo no es valido.'
-    case 'auth/weak-password':
-      return 'La contrasena debe tener al menos 6 caracteres.'
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return 'Correo o contrasena incorrectos.'
-    default:
-      return 'No se pudo completar la autenticacion.'
-  }
-}
-
 function withNewestFirst<T extends { id: number }>(items: T[]) {
   return [...items].sort((left, right) => right.id - left.id)
 }
@@ -103,11 +96,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [routines, setRoutines] = useState<Routine[]>([])
   const [diets, setDiets] = useState<Diet[]>([])
   const [isBootstrapping, setIsBootstrapping] = useState(true)
-  const isFirebaseConfigured = Boolean(auth)
-  const [isAuthBootstrapping, setIsAuthBootstrapping] = useState(Boolean(auth))
   const [networkState, setNetworkState] = useState<ApiFeedbackState>('idle')
   const [networkMessage, setNetworkMessage] = useState('')
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(loadSession)
 
   const applyDashboardData = useCallback((payload: DashboardData) => {
     setFoods(withNewestFirst(payload.foods))
@@ -137,30 +128,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const payload = await runRequest(() => apiClient.getDashboard(), 'Datos cargados desde la API.')
     applyDashboardData(payload)
   }, [applyDashboardData, runRequest])
-
-  useEffect(() => {
-    if (!auth) {
-      return
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user || !user.email) {
-        setSessionUser(null)
-        setIsAuthBootstrapping(false)
-        return
-      }
-
-      setSessionUser({
-        name: resolveSessionName(user.displayName, user.email),
-        email: user.email,
-      })
-      setIsAuthBootstrapping(false)
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -200,55 +167,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
-      if (!auth) {
+      const accounts = loadAccounts()
+      const match = accounts.find(
+        (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
+      )
+
+      if (!match) {
         return false
       }
 
-      try {
-        const credentials = await signInWithEmailAndPassword(auth, email.trim(), password)
-        setSessionUser({
-          name: resolveSessionName(credentials.user.displayName, credentials.user.email),
-          email: credentials.user.email ?? email.trim(),
-        })
-        return true
-      } catch {
-        return false
-      }
+      const user: SessionUser = { name: match.name, email: match.email }
+      saveSession(user)
+      setSessionUser(user)
+      return true
     },
     [],
   )
 
   const register = useCallback(
     async (name: string, email: string, password: string): Promise<RegisterResult> => {
-      if (!auth) {
-        return { ok: false, message: 'Firebase no esta configurado en este entorno.' }
+      const accounts = loadAccounts()
+      const exists = accounts.some(
+        (a) => a.email.toLowerCase() === email.trim().toLowerCase(),
+      )
+
+      if (exists) {
+        return { ok: false, message: 'Ese correo ya esta registrado.' }
       }
 
-      try {
-        const normalizedName = name.trim()
-        const credentials = await createUserWithEmailAndPassword(auth, email.trim(), password)
-
-        if (normalizedName) {
-          await updateProfile(credentials.user, { displayName: normalizedName })
-        }
-
-        setSessionUser({
-          name: resolveSessionName(normalizedName, credentials.user.email),
-          email: credentials.user.email ?? email.trim(),
-        })
-        return { ok: true }
-      } catch (error) {
-        return { ok: false, message: mapAuthErrorToMessage(error) }
+      if (password.length < 6) {
+        return { ok: false, message: 'La contrasena debe tener al menos 6 caracteres.' }
       }
+
+      const normalizedName = name.trim() || email.trim().split('@')[0]
+      const newAccount: StoredAccount = { name: normalizedName, email: email.trim(), password }
+      saveAccounts([...accounts, newAccount])
+
+      const user: SessionUser = { name: normalizedName, email: email.trim() }
+      saveSession(user)
+      setSessionUser(user)
+      return { ok: true }
     },
     [],
   )
 
   const logout = useCallback(() => {
-    if (auth) {
-      void signOut(auth)
-    }
-
+    saveSession(null)
     setSessionUser(null)
   }, [])
 
@@ -346,8 +310,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       diets,
       totals,
       isBootstrapping,
-      isAuthBootstrapping,
-      isFirebaseConfigured,
       networkState,
       networkMessage,
       sessionUser,
@@ -371,8 +333,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       diets,
       totals,
       isBootstrapping,
-      isAuthBootstrapping,
-      isFirebaseConfigured,
       networkState,
       networkMessage,
       sessionUser,
