@@ -7,10 +7,38 @@ import { exerciseRouter } from './routes/exerciseRoutes.js'
 import { foodRouter } from './routes/foodRoutes.js'
 import { routineRouter } from './routes/routineRoutes.js'
 
+function isVercelPreviewOrigin(origin: string) {
+  try {
+    const hostname = new URL(origin).hostname
+    return hostname.endsWith('.vercel.app')
+  } catch {
+    return false
+  }
+}
+
 export function createApp() {
   const app = express()
 
-  app.use(cors({ origin: env.allowedOrigin }))
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true)
+        return
+      }
+
+      if (env.allowedOrigins.includes('*') || env.allowedOrigins.includes(origin)) {
+        callback(null, true)
+        return
+      }
+
+      if (env.allowVercelPreviews && isVercelPreviewOrigin(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error('Origin no permitido por CORS'))
+    },
+  }))
   app.use(express.json())
 
   app.use('/api/v1', dashboardRouter)
