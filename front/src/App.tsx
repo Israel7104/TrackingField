@@ -11,19 +11,7 @@ import UserPage from './pages/UserPage'
 import { appRoutes } from './utils/routes'
 
 function AppRoutes() {
-  const { isBootstrapping, sessionUser, logout } = useAppContext()
-
-  if (isBootstrapping) {
-    return (
-      <main className="page-shell">
-        <section className="module-card user-card">
-          <p className="eyebrow">Preparando datos</p>
-          <h2>Cargando el dashboard desde la API</h2>
-          <p>El frontend espera la respuesta inicial del backend para hidratar el estado global.</p>
-        </section>
-      </main>
-    )
-  }
+  const { sessionUser, logout } = useAppContext()
 
   return (
     <Routes>
