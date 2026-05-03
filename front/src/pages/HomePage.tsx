@@ -1,14 +1,6 @@
 import { Link } from 'react-router-dom'
-import type { FoodEntry, ExerciseEntry, Routine, Diet } from '../types'
-import { foodTotals } from '../types'
 import MetricCard from '../components/MetricCard'
-
-type Props = {
-  foods: FoodEntry[]
-  exercises: ExerciseEntry[]
-  routines: Routine[]
-  diets: Diet[]
-}
+import { useAppContext } from '../context/AppContext'
 
 const roadmap = [
   'Diseñar primero el front por secciones: nutricion, entrenamientos y usuario.',
@@ -16,8 +8,8 @@ const roadmap = [
   'Resolver autenticacion con Firebase y almacenamiento persistente.',
 ]
 
-export default function HomePage({ foods, exercises, routines, diets }: Props) {
-  const totals = foodTotals(foods)
+export default function HomePage() {
+  const { foods, exercises, routines, diets, totals } = useAppContext()
 
   return (
     <main className="page-shell">

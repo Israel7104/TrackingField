@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { appRoutes } from '../utils/routes'
 
 type SessionUser = {
   name: string
@@ -11,10 +12,10 @@ type Props = {
 }
 
 const links = [
-  { to: '/', label: 'Inicio' },
-  { to: '/nutricion', label: 'Dieta' },
-  { to: '/entrenamientos', label: 'Entrenamientos' },
-  { to: '/usuario', label: 'Usuario' },
+  { to: appRoutes.home, label: 'Inicio' },
+  { to: appRoutes.nutrition, label: 'Dieta' },
+  { to: appRoutes.training, label: 'Entrenamientos' },
+  { to: appRoutes.user, label: 'Usuario' },
 ]
 
 export default function Navbar({ sessionUser, onLogout }: Props) {
@@ -47,8 +48,8 @@ export default function Navbar({ sessionUser, onLogout }: Props) {
           </>
         ) : (
           <Link
-            to="/usuario"
-            className={`navbar-link${pathname === '/usuario' ? ' navbar-link--active' : ''}`}
+            to={appRoutes.user}
+            className={`navbar-link${pathname === appRoutes.user ? ' navbar-link--active' : ''}`}
           >
             Iniciar sesion
           </Link>

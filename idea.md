@@ -40,3 +40,5 @@ Poder hacer planes de entrenamiento y compartir estas.
 
 Plantear hacer grupos para la gente.
 
+
+## Notas reunión 2

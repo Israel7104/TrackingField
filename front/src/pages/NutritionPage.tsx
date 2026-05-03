@@ -1,51 +1,34 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { FoodEntry, Diet } from '../types'
-import { foodTotals } from '../types'
 import MetricCard from '../components/MetricCard'
 import FoodForm from '../components/FoodForm'
 import DietCard from '../components/DietCard'
 import type { FoodData } from '../components/FoodForm'
+import { useAppContext } from '../context/AppContext'
 
-type Props = {
-  foods: FoodEntry[]
-  setFoods: React.Dispatch<React.SetStateAction<FoodEntry[]>>
-  diets: Diet[]
-  setDiets: React.Dispatch<React.SetStateAction<Diet[]>>
-}
-
-export default function NutritionPage({ foods, setFoods, diets, setDiets }: Props) {
+export default function NutritionPage() {
   const [dietForm, setDietForm] = useState({ name: '', targetCalories: '' })
-  const totals = foodTotals(foods)
+  const { foods, diets, totals, addFood, createDiet, addFoodToDiet, deleteDiet } = useAppContext()
 
   function handleAddFood(food: FoodData) {
-    setFoods((prev) => [{ id: Date.now(), ...food }, ...prev])
+    return addFood(food)
   }
 
-  function handleCreateDiet(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateDiet(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setDiets((prev) => [
-      {
-        id: Date.now(),
-        name: dietForm.name.trim(),
-        targetCalories: Number(dietForm.targetCalories),
-        foods: [],
-      },
-      ...prev,
-    ])
+    await createDiet({
+      name: dietForm.name.trim(),
+      targetCalories: Number(dietForm.targetCalories),
+    })
     setDietForm({ name: '', targetCalories: '' })
   }
 
   function handleAddFoodToDiet(dietId: number, food: FoodData) {
-    setDiets((prev) =>
-      prev.map((d) =>
-        d.id === dietId ? { ...d, foods: [...d.foods, { id: Date.now(), ...food }] } : d,
-      ),
-    )
+    return addFoodToDiet(dietId, food)
   }
 
   function handleDeleteDiet(id: number) {
-    setDiets((prev) => prev.filter((d) => d.id !== id))
+    return deleteDiet(id)
   }
 
   return (

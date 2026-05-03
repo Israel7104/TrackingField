@@ -1,46 +1,31 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import type { ExerciseEntry, Routine } from '../types'
 import MetricCard from '../components/MetricCard'
 import ExerciseForm from '../components/ExerciseForm'
 import RoutineCard from '../components/RoutineCard'
 import type { ExerciseData } from '../components/ExerciseForm'
+import { useAppContext } from '../context/AppContext'
 
-type Props = {
-  exercises: ExerciseEntry[]
-  setExercises: React.Dispatch<React.SetStateAction<ExerciseEntry[]>>
-  routines: Routine[]
-  setRoutines: React.Dispatch<React.SetStateAction<Routine[]>>
-}
-
-export default function TrainingPage({ exercises, setExercises, routines, setRoutines }: Props) {
+export default function TrainingPage() {
   const [routineNameForm, setRoutineNameForm] = useState('')
+  const { exercises, routines, addExercise, createRoutine, addExerciseToRoutine, deleteRoutine } = useAppContext()
 
   function handleAddExercise(exercise: ExerciseData) {
-    setExercises((prev) => [{ id: Date.now(), ...exercise }, ...prev])
+    return addExercise(exercise)
   }
 
-  function handleCreateRoutine(event: FormEvent<HTMLFormElement>) {
+  async function handleCreateRoutine(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setRoutines((prev) => [
-      { id: Date.now(), name: routineNameForm.trim(), exercises: [] },
-      ...prev,
-    ])
+    await createRoutine({ name: routineNameForm.trim() })
     setRoutineNameForm('')
   }
 
   function handleAddExerciseToRoutine(routineId: number, exercise: ExerciseData) {
-    setRoutines((prev) =>
-      prev.map((r) =>
-        r.id === routineId
-          ? { ...r, exercises: [...r.exercises, { id: Date.now(), ...exercise }] }
-          : r,
-      ),
-    )
+    return addExerciseToRoutine(routineId, exercise)
   }
 
   function handleDeleteRoutine(id: number) {
-    setRoutines((prev) => prev.filter((r) => r.id !== id))
+    return deleteRoutine(id)
   }
 
   return (

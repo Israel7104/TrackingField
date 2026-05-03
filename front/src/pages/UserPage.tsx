@@ -1,47 +1,31 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import type { FoodEntry, ExerciseEntry, Routine, Diet } from '../types'
-import { foodTotals } from '../types'
 import MetricCard from '../components/MetricCard'
+import { useAppContext } from '../context/AppContext'
 
-type SessionUser = {
-  name: string
-  email: string
-}
-
-type Props = {
-  foods: FoodEntry[]
-  exercises: ExerciseEntry[]
-  routines: Routine[]
-  diets: Diet[]
-  sessionUser: SessionUser | null
-  onLogin: (email: string, password: string) => boolean
-  onRegister: (name: string, email: string, password: string) => { ok: boolean; message?: string }
-  onLogout: () => void
-}
-
-export default function UserPage({
-  foods,
-  exercises,
-  routines,
-  diets,
-  sessionUser,
-  onLogin,
-  onRegister,
-  onLogout,
-}: Props) {
+export default function UserPage() {
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '' })
   const [authError, setAuthError] = useState('')
+  const {
+    foods,
+    exercises,
+    routines,
+    diets,
+    totals,
+    sessionUser,
+    login,
+    register,
+    logout,
+  } = useAppContext()
 
-  const totals = foodTotals(foods)
   const avgKcal = Math.round(totals.calories / Math.max(foods.length, 1))
 
   function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const ok = onLogin(loginForm.email, loginForm.password)
+    const ok = login(loginForm.email, loginForm.password)
     if (!ok) {
       setAuthError('Correo o contrasena incorrectos.')
       return
@@ -53,7 +37,7 @@ export default function UserPage({
 
   function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const result = onRegister(registerForm.name, registerForm.email, registerForm.password)
+    const result = register(registerForm.name, registerForm.email, registerForm.password)
 
     if (!result.ok) {
       setAuthError(result.message ?? 'No se pudo crear la cuenta.')
@@ -196,7 +180,7 @@ export default function UserPage({
         <p>
           Sesion iniciada como <strong>{sessionUser.name}</strong> ({sessionUser.email})
         </p>
-        <button type="button" className="plan-delete-btn" onClick={onLogout}>
+        <button type="button" className="plan-delete-btn" onClick={logout}>
           Cerrar sesion
         </button>
       </div>

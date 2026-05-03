@@ -1,0 +1,83 @@
+{
+  "foods": [
+    {
+      "id": 1,
+      "name": "Yogur proteico",
+      "calories": 154,
+      "protein": 20,
+      "carbs": 9,
+      "fats": 3
+    },
+    {
+      "id": 2,
+      "name": "Arroz con pollo",
+      "calories": 620,
+      "protein": 43,
+      "carbs": 74,
+      "fats": 15
+    }
+  ],
+  "exercises": [
+    {
+      "id": 1,
+      "name": "Sentadilla trasera",
+      "sets": 5,
+      "reps": 5,
+      "intensity": 82
+    },
+    {
+      "id": 2,
+      "name": "Press banca",
+      "sets": 4,
+      "reps": 6,
+      "intensity": 78
+    }
+  ],
+  "routines": [
+    {
+      "id": 1,
+      "name": "Fuerza base",
+      "exercises": [
+        {
+          "id": 11,
+          "name": "Sentadilla",
+          "sets": 5,
+          "reps": 5,
+          "intensity": 80
+        },
+        {
+          "id": 12,
+          "name": "Peso muerto",
+          "sets": 3,
+          "reps": 5,
+          "intensity": 85
+        }
+      ]
+    }
+  ],
+  "diets": [
+    {
+      "id": 1,
+      "name": "Volumen limpio",
+      "targetCalories": 2800,
+      "foods": [
+        {
+          "id": 21,
+          "name": "Avena con platano",
+          "calories": 380,
+          "protein": 12,
+          "carbs": 68,
+          "fats": 8
+        },
+        {
+          "id": 22,
+          "name": "Pollo con arroz",
+          "calories": 620,
+          "protein": 48,
+          "carbs": 72,
+          "fats": 14
+        }
+      ]
+    }
+  ]
+}
