@@ -4,16 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { apiClient } from '../api/client'
 import { foodTotals } from '../types'
 import type {
-  ApiFeedbackState,
-  DashboardData,
   Diet,
   ExerciseEntry,
   FoodEntry,
@@ -26,39 +22,52 @@ import type {
   SessionUser,
 } from '../types'
 
-const STORAGE_ACCOUNTS = 'tf_accounts'
-const STORAGE_SESSION = 'tf_session'
+// ── localStorage keys ────────────────────────────────────────────────────────
+
+const KEY_ACCOUNTS = 'tf_accounts'
+const KEY_SESSION  = 'tf_session'
+const KEY_FOODS    = 'tf_foods'
+const KEY_EXERCISES = 'tf_exercises'
+const KEY_DIETS    = 'tf_diets'
+const KEY_ROUTINES = 'tf_routines'
+const KEY_NEXT_ID  = 'tf_next_id'
+
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 type StoredAccount = { name: string; email: string; password: string }
 
-function loadAccounts(): StoredAccount[] {
+function load<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_ACCOUNTS) ?? '[]') as StoredAccount[]
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
   } catch {
-    return []
+    return fallback
   }
 }
 
-function saveAccounts(accounts: StoredAccount[]) {
-  localStorage.setItem(STORAGE_ACCOUNTS, JSON.stringify(accounts))
+function save(key: string, value: unknown) {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+function nextId(): number {
+  const id = load<number>(KEY_NEXT_ID, 1)
+  save(KEY_NEXT_ID, id + 1)
+  return id
 }
 
 function loadSession(): SessionUser | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_SESSION)
-    return raw ? (JSON.parse(raw) as SessionUser) : null
-  } catch {
-    return null
-  }
+  return load<SessionUser | null>(KEY_SESSION, null)
 }
 
 function saveSession(user: SessionUser | null) {
   if (user) {
-    localStorage.setItem(STORAGE_SESSION, JSON.stringify(user))
+    save(KEY_SESSION, user)
   } else {
-    localStorage.removeItem(STORAGE_SESSION)
+    localStorage.removeItem(KEY_SESSION)
   }
 }
+
+// ── context type ─────────────────────────────────────────────────────────────
 
 type AppContextValue = {
   foods: FoodEntry[]
@@ -66,142 +75,67 @@ type AppContextValue = {
   routines: Routine[]
   diets: Diet[]
   totals: ReturnType<typeof foodTotals>
-  isBootstrapping: boolean
-  networkState: ApiFeedbackState
-  networkMessage: string
   sessionUser: SessionUser | null
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, password: string) => Promise<RegisterResult>
   logout: () => void
-  refreshData: () => Promise<void>
-  addFood: (food: NewFoodEntry) => Promise<void>
-  addExercise: (exercise: NewExerciseEntry) => Promise<void>
-  createDiet: (diet: NewDiet) => Promise<void>
-  deleteDiet: (id: number) => Promise<void>
-  addFoodToDiet: (dietId: number, food: NewFoodEntry) => Promise<void>
-  createRoutine: (routine: NewRoutine) => Promise<void>
-  deleteRoutine: (id: number) => Promise<void>
-  addExerciseToRoutine: (routineId: number, exercise: NewExerciseEntry) => Promise<void>
+  addFood: (food: NewFoodEntry) => void
+  addExercise: (exercise: NewExerciseEntry) => void
+  createDiet: (diet: NewDiet) => void
+  deleteDiet: (id: number) => void
+  addFoodToDiet: (dietId: number, food: NewFoodEntry) => void
+  createRoutine: (routine: NewRoutine) => void
+  deleteRoutine: (id: number) => void
+  addExerciseToRoutine: (routineId: number, exercise: NewExerciseEntry) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
 
-function withNewestFirst<T extends { id: number }>(items: T[]) {
-  return [...items].sort((left, right) => right.id - left.id)
-}
+// ── provider ─────────────────────────────────────────────────────────────────
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [foods, setFoods] = useState<FoodEntry[]>([])
-  const [exercises, setExercises] = useState<ExerciseEntry[]>([])
-  const [routines, setRoutines] = useState<Routine[]>([])
-  const [diets, setDiets] = useState<Diet[]>([])
-  const [isBootstrapping, setIsBootstrapping] = useState(true)
-  const [networkState, setNetworkState] = useState<ApiFeedbackState>('idle')
-  const [networkMessage, setNetworkMessage] = useState('')
+  const [foods, setFoods] = useState<FoodEntry[]>(() =>
+    load<FoodEntry[]>(KEY_FOODS, []),
+  )
+  const [exercises, setExercises] = useState<ExerciseEntry[]>(() =>
+    load<ExerciseEntry[]>(KEY_EXERCISES, []),
+  )
+  const [routines, setRoutines] = useState<Routine[]>(() =>
+    load<Routine[]>(KEY_ROUTINES, []),
+  )
+  const [diets, setDiets] = useState<Diet[]>(() =>
+    load<Diet[]>(KEY_DIETS, []),
+  )
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(loadSession)
 
-  const applyDashboardData = useCallback((payload: DashboardData) => {
-    setFoods(withNewestFirst(payload.foods))
-    setExercises(withNewestFirst(payload.exercises))
-    setRoutines(withNewestFirst(payload.routines))
-    setDiets(withNewestFirst(payload.diets))
+  // ── auth ────────────────────────────────────────────────────────────────
+
+  const login = useCallback(async (email: string, password: string) => {
+    const accounts = load<StoredAccount[]>(KEY_ACCOUNTS, [])
+    const match = accounts.find(
+      (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
+    )
+
+    if (!match) return false
+
+    const user: SessionUser = { name: match.name, email: match.email }
+    saveSession(user)
+    setSessionUser(user)
+    return true
   }, [])
-
-  const runRequest = useCallback(async <T,>(request: () => Promise<T>, successMessage: string) => {
-    setNetworkState('loading')
-    setNetworkMessage('Sincronizando con la API...')
-
-    try {
-      const result = await request()
-      setNetworkState('success')
-      setNetworkMessage(successMessage)
-      return result
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ha ocurrido un error inesperado.'
-      setNetworkState('error')
-      setNetworkMessage(message)
-      throw error
-    }
-  }, [])
-
-  const refreshData = useCallback(async () => {
-    const payload = await runRequest(() => apiClient.getDashboard(), 'Datos cargados desde la API.')
-    applyDashboardData(payload)
-  }, [applyDashboardData, runRequest])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function bootstrap() {
-      try {
-        const payload = await apiClient.getDashboard()
-
-        if (cancelled) {
-          return
-        }
-
-        applyDashboardData(payload)
-        setNetworkState('success')
-        setNetworkMessage('Datos cargados desde la API.')
-      } catch (error) {
-        if (cancelled) {
-          return
-        }
-
-        const message = error instanceof Error ? error.message : 'Ha ocurrido un error inesperado.'
-        setNetworkState('error')
-        setNetworkMessage(message)
-      } finally {
-        if (!cancelled) {
-          setIsBootstrapping(false)
-        }
-      }
-    }
-
-    void bootstrap()
-
-    return () => {
-      cancelled = true
-    }
-  }, [applyDashboardData])
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const accounts = loadAccounts()
-      const match = accounts.find(
-        (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
-      )
-
-      if (!match) {
-        return false
-      }
-
-      const user: SessionUser = { name: match.name, email: match.email }
-      saveSession(user)
-      setSessionUser(user)
-      return true
-    },
-    [],
-  )
 
   const register = useCallback(
     async (name: string, email: string, password: string): Promise<RegisterResult> => {
-      const accounts = loadAccounts()
+      const accounts = load<StoredAccount[]>(KEY_ACCOUNTS, [])
       const exists = accounts.some(
         (a) => a.email.toLowerCase() === email.trim().toLowerCase(),
       )
 
-      if (exists) {
-        return { ok: false, message: 'Ese correo ya esta registrado.' }
-      }
-
-      if (password.length < 6) {
-        return { ok: false, message: 'La contrasena debe tener al menos 6 caracteres.' }
-      }
+      if (exists) return { ok: false, message: 'Ese correo ya esta registrado.' }
+      if (password.length < 6) return { ok: false, message: 'La contrasena debe tener al menos 6 caracteres.' }
 
       const normalizedName = name.trim() || email.trim().split('@')[0]
-      const newAccount: StoredAccount = { name: normalizedName, email: email.trim(), password }
-      saveAccounts([...accounts, newAccount])
+      save(KEY_ACCOUNTS, [...accounts, { name: normalizedName, email: email.trim(), password }])
 
       const user: SessionUser = { name: normalizedName, email: email.trim() }
       saveSession(user)
@@ -216,89 +150,89 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSessionUser(null)
   }, [])
 
-  const addFood = useCallback(
-    async (food: NewFoodEntry) => {
-      const nextFood = await runRequest(
-        () => apiClient.createFood(food),
-        'Alimento guardado en el servidor.',
-      )
-      setFoods((prev) => [nextFood, ...prev])
-    },
-    [runRequest],
-  )
+  // ── foods ───────────────────────────────────────────────────────────────
 
-  const addExercise = useCallback(
-    async (exercise: NewExerciseEntry) => {
-      const nextExercise = await runRequest(
-        () => apiClient.createExercise(exercise),
-        'Ejercicio guardado en el servidor.',
-      )
-      setExercises((prev) => [nextExercise, ...prev])
-    },
-    [runRequest],
-  )
+  const addFood = useCallback((food: NewFoodEntry) => {
+    const entry: FoodEntry = { ...food, id: nextId() }
+    setFoods((prev) => {
+      const next = [entry, ...prev]
+      save(KEY_FOODS, next)
+      return next
+    })
+  }, [])
 
-  const createDiet = useCallback(
-    async (diet: NewDiet) => {
-      const nextDiet = await runRequest(
-        () => apiClient.createDiet(diet),
-        'Dieta creada correctamente.',
-      )
-      setDiets((prev) => [nextDiet, ...prev])
-    },
-    [runRequest],
-  )
+  // ── exercises ───────────────────────────────────────────────────────────
 
-  const deleteDiet = useCallback(
-    async (id: number) => {
-      await runRequest(() => apiClient.deleteDiet(id), 'Dieta eliminada correctamente.')
-      setDiets((prev) => prev.filter((diet) => diet.id !== id))
-    },
-    [runRequest],
-  )
+  const addExercise = useCallback((exercise: NewExerciseEntry) => {
+    const entry: ExerciseEntry = { ...exercise, id: nextId() }
+    setExercises((prev) => {
+      const next = [entry, ...prev]
+      save(KEY_EXERCISES, next)
+      return next
+    })
+  }, [])
 
-  const addFoodToDiet = useCallback(
-    async (dietId: number, food: NewFoodEntry) => {
-      const updatedDiet = await runRequest(
-        () => apiClient.addFoodToDiet(dietId, food),
-        'Alimento agregado a la dieta.',
-      )
-      setDiets((prev) => prev.map((diet) => (diet.id === dietId ? updatedDiet : diet)))
-    },
-    [runRequest],
-  )
+  // ── diets ───────────────────────────────────────────────────────────────
 
-  const createRoutine = useCallback(
-    async (routine: NewRoutine) => {
-      const nextRoutine = await runRequest(
-        () => apiClient.createRoutine(routine),
-        'Rutina creada correctamente.',
-      )
-      setRoutines((prev) => [nextRoutine, ...prev])
-    },
-    [runRequest],
-  )
+  const createDiet = useCallback((diet: NewDiet) => {
+    const entry: Diet = { ...diet, id: nextId(), foods: [] }
+    setDiets((prev) => {
+      const next = [entry, ...prev]
+      save(KEY_DIETS, next)
+      return next
+    })
+  }, [])
 
-  const deleteRoutine = useCallback(
-    async (id: number) => {
-      await runRequest(() => apiClient.deleteRoutine(id), 'Rutina eliminada correctamente.')
-      setRoutines((prev) => prev.filter((routine) => routine.id !== id))
-    },
-    [runRequest],
-  )
+  const deleteDiet = useCallback((id: number) => {
+    setDiets((prev) => {
+      const next = prev.filter((d) => d.id !== id)
+      save(KEY_DIETS, next)
+      return next
+    })
+  }, [])
 
-  const addExerciseToRoutine = useCallback(
-    async (routineId: number, exercise: NewExerciseEntry) => {
-      const updatedRoutine = await runRequest(
-        () => apiClient.addExerciseToRoutine(routineId, exercise),
-        'Ejercicio agregado a la rutina.',
+  const addFoodToDiet = useCallback((dietId: number, food: NewFoodEntry) => {
+    const entry: FoodEntry = { ...food, id: nextId() }
+    setDiets((prev) => {
+      const next = prev.map((d) =>
+        d.id === dietId ? { ...d, foods: [...d.foods, entry] } : d,
       )
-      setRoutines((prev) =>
-        prev.map((routine) => (routine.id === routineId ? updatedRoutine : routine)),
+      save(KEY_DIETS, next)
+      return next
+    })
+  }, [])
+
+  // ── routines ─────────────────────────────────────────────────────────────
+
+  const createRoutine = useCallback((routine: NewRoutine) => {
+    const entry: Routine = { ...routine, id: nextId(), exercises: [] }
+    setRoutines((prev) => {
+      const next = [entry, ...prev]
+      save(KEY_ROUTINES, next)
+      return next
+    })
+  }, [])
+
+  const deleteRoutine = useCallback((id: number) => {
+    setRoutines((prev) => {
+      const next = prev.filter((r) => r.id !== id)
+      save(KEY_ROUTINES, next)
+      return next
+    })
+  }, [])
+
+  const addExerciseToRoutine = useCallback((routineId: number, exercise: NewExerciseEntry) => {
+    const entry: ExerciseEntry = { ...exercise, id: nextId() }
+    setRoutines((prev) => {
+      const next = prev.map((r) =>
+        r.id === routineId ? { ...r, exercises: [...r.exercises, entry] } : r,
       )
-    },
-    [runRequest],
-  )
+      save(KEY_ROUTINES, next)
+      return next
+    })
+  }, [])
+
+  // ── value ────────────────────────────────────────────────────────────────
 
   const totals = useMemo(() => foodTotals(foods), [foods])
 
@@ -309,14 +243,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       routines,
       diets,
       totals,
-      isBootstrapping,
-      networkState,
-      networkMessage,
       sessionUser,
       login,
       register,
       logout,
-      refreshData,
       addFood,
       addExercise,
       createDiet,
@@ -332,14 +262,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       routines,
       diets,
       totals,
-      isBootstrapping,
-      networkState,
-      networkMessage,
       sessionUser,
       login,
       register,
       logout,
-      refreshData,
       addFood,
       addExercise,
       createDiet,
@@ -356,10 +282,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 export function useAppContext() {
   const context = useContext(AppContext)
-
-  if (!context) {
-    throw new Error('useAppContext debe usarse dentro de AppProvider')
-  }
-
+  if (!context) throw new Error('useAppContext debe usarse dentro de AppProvider')
   return context
 }
