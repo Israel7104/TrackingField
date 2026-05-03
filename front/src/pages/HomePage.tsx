@@ -2,12 +2,6 @@ import { Link } from 'react-router-dom'
 import MetricCard from '../components/MetricCard'
 import { useAppContext } from '../context/AppContext'
 
-const roadmap = [
-  'Diseñar primero el front por secciones: nutricion, entrenamientos y usuario.',
-  'Conectar despues un backend para guardar registros y rutinas.',
-  'Resolver autenticacion con Firebase y almacenamiento persistente.',
-]
-
 export default function HomePage() {
   const { foods, exercises, routines, diets, totals } = useAppContext()
 
@@ -25,9 +19,6 @@ export default function HomePage() {
           <div className="hero-actions">
             <a href="#sections" className="primary-action">
               Empezar
-            </a>
-            <a href="#roadmap" className="secondary-action">
-              Revisar roadmap
             </a>
           </div>
         </div>
@@ -109,26 +100,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Roadmap ──────────────────────────────────── */}
-      <section className="vision-section">
-        <article className="vision-card">
-          <p className="eyebrow">Pensado para evolucionar</p>
-          <h2>La base visual ya deja sitio a comunidad, planes compartidos y datos persistentes.</h2>
-          <p>
-            La propuesta anticipa alimentos creados por usuarios, ejercicios propios,
-            cuentas con Firebase y futuras capas sociales sin obligar a rehacer la
-            arquitectura del front.
-          </p>
-        </article>
-        <article id="roadmap" className="roadmap-card">
-          <p className="eyebrow">Siguientes pasos</p>
-          <ol className="roadmap-list">
-            {roadmap.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ol>
-        </article>
-      </section>
+
     </main>
   )
 }

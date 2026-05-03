@@ -1,61 +1,19 @@
 # TrackingField
 
-TrackingField es una aplicación para llevar en un solo lugar el control básico de nutrición y entrenamiento. Permite registrar alimentos, crear dietas, guardar ejercicios y organizar rutinas desde una interfaz simple.
+TrackingField es una aplicación para llevar el control de tu nutrición y entrenamientos en un solo sitio.
 
-## Resumen
+## Qué puedes hacer
 
-Con la aplicación puedes:
+- Registrar los alimentos que comes cada día con sus calorías y macros.
+- Crear planes de dieta y añadirles alimentos.
+- Anotar los ejercicios de tu sesión con series, repeticiones e intensidad.
+- Organizar tus entrenamientos en rutinas reutilizables.
+- Ver un resumen de tu día desde la pantalla principal.
 
-- Registrar alimentos con calorías y macronutrientes.
-- Crear dietas y añadirles alimentos.
-- Registrar ejercicios con series, repeticiones e intensidad.
-- Crear rutinas y añadirles ejercicios.
-- Consultar un resumen general desde la pantalla principal.
+## Cómo empezar
 
-## Cómo usar la aplicación
-
-La aplicación tiene dos partes: frontend y backend. Necesitas arrancar ambas.
-
-### 1. Iniciar la API
-
-```bash
-cd server
-npm install
-npm run dev
-```
-
-La API queda disponible en `http://localhost:4000`.
-
-### 2. Iniciar el frontend
-
-En otra terminal:
-
-```bash
-cd front
-npm install
-cp .env.example .env
-npm run dev
-```
-
-Después abre en el navegador la URL que muestre Vite, normalmente `http://localhost:5173`.
-
-Antes de iniciar sesión o crear usuario, completa en `front/.env` tus credenciales de Firebase:
-
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_APP_ID`
-
-Guia completa paso a paso: [docs/firebase-auth.md](docs/firebase-auth.md)
-
-## Uso básico
-
-1. Entra en la página de usuario.
-2. Crea un usuario o inicia sesión con Firebase.
-3. Accede a nutrición para añadir alimentos o crear dietas.
-4. Accede a entrenamientos para añadir ejercicios o crear rutinas.
-5. Vuelve al inicio para ver el resumen general.
-
-## Nota
-
-Si el frontend no puede conectar con la API, revisa que el servidor esté arrancado en `http://localhost:4000`. Si necesitas otra URL para la API, puedes definir `VITE_API_URL` en el frontend.
+1. Abre la aplicación en el navegador.
+2. Ve a la sección **Usuario** y crea una cuenta con tu nombre, correo y contraseña.
+3. Entra en **Dieta** para registrar lo que comes o crear un plan de alimentación.
+4. Entra en **Entrenamientos** para anotar tu sesión o crear una rutina.
+5. Vuelve al inicio para ver el resumen del día.
