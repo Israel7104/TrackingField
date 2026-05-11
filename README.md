@@ -1,6 +1,6 @@
 # TrackingField
 
-**[Abrir aplicación →](https://tracking-field-agmb2bbfl-israel7104s-projects.vercel.app/)**
+**[Abrir aplicación →](https://tracking-field-ppeil6oi0-israel7104s-projects.vercel.app/usuario)**
 
 TrackingField es una aplicación para llevar el control de tu nutrición y entrenamientos en un solo sitio.
 
