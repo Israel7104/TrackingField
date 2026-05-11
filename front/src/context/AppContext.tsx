@@ -4,10 +4,23 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+  type User,
+} from 'firebase/auth'
+import { FirebaseError } from 'firebase/app'
+import { auth } from '../firebase/config'
 import { foodTotals } from '../types'
 import type {
   Diet,
@@ -24,8 +37,6 @@ import type {
 
 // ── localStorage keys ────────────────────────────────────────────────────────
 
-const KEY_ACCOUNTS = 'tf_accounts'
-const KEY_SESSION  = 'tf_session'
 const KEY_FOODS    = 'tf_foods'
 const KEY_EXERCISES = 'tf_exercises'
 const KEY_DIETS    = 'tf_diets'
@@ -33,8 +44,6 @@ const KEY_ROUTINES = 'tf_routines'
 const KEY_NEXT_ID  = 'tf_next_id'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-type StoredAccount = { name: string; email: string; password: string }
 
 function load<T>(key: string, fallback: T): T {
   try {
@@ -55,15 +64,40 @@ function nextId(): number {
   return id
 }
 
-function loadSession(): SessionUser | null {
-  return load<SessionUser | null>(KEY_SESSION, null)
+// ── Firebase User to SessionUser ─────────────────────────────────────────────
+
+function firebaseUserToSessionUser(firebaseUser: User | null): SessionUser | null {
+  if (!firebaseUser) return null
+  return {
+    name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+    email: firebaseUser.email || '',
+  }
 }
 
-function saveSession(user: SessionUser | null) {
-  if (user) {
-    save(KEY_SESSION, user)
-  } else {
-    localStorage.removeItem(KEY_SESSION)
+function getAuthErrorMessage(error: unknown): string {
+  if (!(error instanceof FirebaseError)) {
+    return 'Error inesperado de autenticacion. Intenta de nuevo.'
+  }
+
+  switch (error.code) {
+    case 'auth/email-already-in-use':
+      return 'Ese correo ya esta registrado.'
+    case 'auth/invalid-email':
+      return 'El correo no es valido.'
+    case 'auth/weak-password':
+      return 'La contrasena debe tener al menos 6 caracteres.'
+    case 'auth/operation-not-allowed':
+      return 'Debes habilitar Email/Password en Firebase Authentication > Sign-in method.'
+    case 'auth/network-request-failed':
+      return 'No hay conexion con Firebase. Revisa internet e intenta de nuevo.'
+    case 'auth/invalid-credential':
+    case 'auth/wrong-password':
+    case 'auth/user-not-found':
+      return 'Correo o contrasena incorrectos.'
+    case 'auth/too-many-requests':
+      return 'Demasiados intentos. Espera un momento y vuelve a intentar.'
+    default:
+      return `Error de Firebase: ${error.code}`
   }
 }
 
@@ -76,7 +110,8 @@ type AppContextValue = {
   diets: Diet[]
   totals: ReturnType<typeof foodTotals>
   sessionUser: SessionUser | null
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ ok: boolean; message?: string }>
+  loginWithGoogle: () => Promise<{ ok: boolean; message?: string }>
   register: (name: string, email: string, password: string) => Promise<RegisterResult>
   logout: () => void
   addFood: (food: NewFoodEntry) => void
@@ -106,48 +141,84 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [diets, setDiets] = useState<Diet[]>(() =>
     load<Diet[]>(KEY_DIETS, []),
   )
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(loadSession)
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // ── Firebase Auth state listener ────────────────────────────────────────
+
+  useEffect(() => {
+    if (!auth) {
+      setIsLoading(false)
+      return
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setSessionUser(firebaseUserToSessionUser(firebaseUser))
+      setIsLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   // ── auth ────────────────────────────────────────────────────────────────
 
-  const login = useCallback(async (email: string, password: string) => {
-    const accounts = load<StoredAccount[]>(KEY_ACCOUNTS, [])
-    const match = accounts.find(
-      (a) => a.email.toLowerCase() === email.trim().toLowerCase() && a.password === password,
-    )
+  const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; message?: string }> => {
+    if (!auth) return { ok: false, message: 'Firebase no esta configurado.' }
 
-    if (!match) return false
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, message: getAuthErrorMessage(error) }
+    }
+  }, [])
 
-    const user: SessionUser = { name: match.name, email: match.email }
-    saveSession(user)
-    setSessionUser(user)
-    return true
+  const loginWithGoogle = useCallback(async (): Promise<{ ok: boolean; message?: string }> => {
+    if (!auth) return { ok: false, message: 'Firebase no esta configurado.' }
+
+    try {
+      const provider = new GoogleAuthProvider()
+      provider.setCustomParameters({ prompt: 'select_account' })
+      await signInWithPopup(auth, provider)
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, message: getAuthErrorMessage(error) }
+    }
   }, [])
 
   const register = useCallback(
     async (name: string, email: string, password: string): Promise<RegisterResult> => {
-      const accounts = load<StoredAccount[]>(KEY_ACCOUNTS, [])
-      const exists = accounts.some(
-        (a) => a.email.toLowerCase() === email.trim().toLowerCase(),
-      )
+      if (!auth) return { ok: false, message: 'Firebase no está configurado.' }
 
-      if (exists) return { ok: false, message: 'Ese correo ya esta registrado.' }
-      if (password.length < 6) return { ok: false, message: 'La contrasena debe tener al menos 6 caracteres.' }
+      try {
+        if (password.length < 6) {
+          return { ok: false, message: 'La contrasena debe tener al menos 6 caracteres.' }
+        }
 
-      const normalizedName = name.trim() || email.trim().split('@')[0]
-      save(KEY_ACCOUNTS, [...accounts, { name: normalizedName, email: email.trim(), password }])
+        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
+        const normalizedName = name.trim()
 
-      const user: SessionUser = { name: normalizedName, email: email.trim() }
-      saveSession(user)
-      setSessionUser(user)
-      return { ok: true }
+        if (normalizedName) {
+          await updateProfile(credential.user, { displayName: normalizedName })
+        }
+
+        return { ok: true }
+      } catch (error: unknown) {
+        return { ok: false, message: getAuthErrorMessage(error) }
+      }
     },
     [],
   )
 
-  const logout = useCallback(() => {
-    saveSession(null)
-    setSessionUser(null)
+  const logout = useCallback(async () => {
+    if (!auth) return
+
+    try {
+      await signOut(auth)
+      setSessionUser(null)
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }, [])
 
   // ── foods ───────────────────────────────────────────────────────────────
@@ -245,6 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       totals,
       sessionUser,
       login,
+      loginWithGoogle,
       register,
       logout,
       addFood,
@@ -264,6 +336,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       totals,
       sessionUser,
       login,
+      loginWithGoogle,
       register,
       logout,
       addFood,
@@ -276,6 +349,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addExerciseToRoutine,
     ],
   )
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Cargando...</p>
+      </div>
+    )
+  }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>
 }

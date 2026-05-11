@@ -18,6 +18,7 @@ export default function UserPage() {
     totals,
     sessionUser,
     login,
+    loginWithGoogle,
     register,
     logout,
   } = useAppContext()
@@ -32,10 +33,10 @@ export default function UserPage() {
     }
 
     setIsSubmitting(true)
-    const ok = await login(loginForm.email, loginForm.password)
+    const result = await login(loginForm.email, loginForm.password)
 
-    if (!ok) {
-        setAuthError('Correo o contrasena incorrectos.')
+    if (!result.ok) {
+      setAuthError(result.message ?? 'No se pudo iniciar sesion.')
       setIsSubmitting(false)
       return
     }
@@ -63,6 +64,24 @@ export default function UserPage() {
 
     setAuthError('')
     setRegisterForm({ name: '', email: '', password: '' })
+    setIsSubmitting(false)
+  }
+
+  async function handleGoogleAuth() {
+    if (isSubmitting) {
+      return
+    }
+
+    setIsSubmitting(true)
+    const result = await loginWithGoogle()
+
+    if (!result.ok) {
+      setAuthError(result.message ?? 'No se pudo continuar con Google.')
+      setIsSubmitting(false)
+      return
+    }
+
+    setAuthError('')
     setIsSubmitting(false)
   }
 
@@ -178,6 +197,24 @@ export default function UserPage() {
                 </button>
               </form>
             )}
+
+            <div className="auth-google-wrap">
+              <button
+                type="button"
+                className="google-auth-btn"
+                onClick={handleGoogleAuth}
+                disabled={isSubmitting}
+                aria-label="Continuar con Google"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.2-1.4 3.6-5.5 3.6-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.6 12 1.6 6.8 1.6 2.6 5.9 2.6 11.2S6.8 20.8 12 20.8c6.9 0 9.1-4.9 9.1-7.4 0-.5 0-.8-.1-1.2H12z"/>
+                  <path fill="#34A853" d="M3.7 7.3l3.2 2.3C7.7 7.7 9.7 6.3 12 6.3c1.9 0 3.2.8 3.9 1.5l2.7-2.7C16.8 2.5 14.6 1.6 12 1.6c-3.7 0-7 2.1-8.3 5.2z"/>
+                  <path fill="#FBBC05" d="M12 20.8c2.5 0 4.7-.8 6.2-2.2l-2.9-2.4c-.8.6-1.8 1-3.3 1-2.5 0-4.7-1.7-5.4-4l-3.2 2.5c1.3 3 4.4 5.1 8.6 5.1z"/>
+                  <path fill="#4285F4" d="M21.1 12.2H12v3.9h5.5c-.3 1.5-1.3 2.5-2.2 3.1l2.9 2.4c1.7-1.6 2.9-4.1 2.9-7 0-.5 0-.9-.1-1.4z"/>
+                </svg>
+                <span>{isSubmitting ? 'Procesando...' : 'Google'}</span>
+              </button>
+            </div>
 
             {authError && <p className="auth-error">{authError}</p>}
 
