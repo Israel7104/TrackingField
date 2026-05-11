@@ -450,6 +450,16 @@
   margin-top: 1.15rem;
 }
 
+.auth-google-separator {
+  margin: 0 0 0.65rem;
+  text-align: center;
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .google-auth-btn {
   width: 100%;
   min-height: 3rem;

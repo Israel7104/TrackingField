@@ -199,6 +199,7 @@ export default function UserPage() {
             )}
 
             <div className="auth-google-wrap">
+              <p className="auth-google-separator">o continuar con</p>
               <button
                 type="button"
                 className="google-auth-btn"
@@ -212,7 +213,7 @@ export default function UserPage() {
                   <path fill="#FBBC05" d="M12 20.8c2.5 0 4.7-.8 6.2-2.2l-2.9-2.4c-.8.6-1.8 1-3.3 1-2.5 0-4.7-1.7-5.4-4l-3.2 2.5c1.3 3 4.4 5.1 8.6 5.1z"/>
                   <path fill="#4285F4" d="M21.1 12.2H12v3.9h5.5c-.3 1.5-1.3 2.5-2.2 3.1l2.9 2.4c1.7-1.6 2.9-4.1 2.9-7 0-.5 0-.9-.1-1.4z"/>
                 </svg>
-                <span>{isSubmitting ? 'Procesando...' : 'Google'}</span>
+                <span>{isSubmitting ? 'Procesando...' : 'Continuar con Google'}</span>
               </button>
             </div>
 
