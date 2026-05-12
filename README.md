@@ -92,7 +92,7 @@ TrackingField/
 ## Descargar y ejecutar
 
 ```bash
-git clone <url-de-tu-repositorio>
+git clone <git@github.com:Israel7104/TrackingField.git>
 cd TrackingField
 ```
 
