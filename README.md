@@ -151,6 +151,6 @@ Frontend local por defecto: `http://localhost:5173`
 
 ---
 
-Desarrollado durante las practicas en [Corner Estudios](https://www.corner-estudios.com) - TrackingField - 2026
+Desarrollado durante las practicas en [Corner Estudios](https://www.corner-estudios.com) - Israel - 2026
 
 Tablero de trabajo: https://trello.com/invite/b/69f7cd5c4743cf94c72b362d/ATTI7c02052bbdd11977f1a3b2eeaf8ac505123B8A04/trackingfieldce
