@@ -45,16 +45,6 @@ export default function Navbar({ sessionUser, onLogout }: Props) {
           </Link>
         ))}
 
-        <button
-          type="button"
-          aria-label={dark ? 'Modo claro' : 'Modo oscuro'}
-          title={dark ? 'Modo claro' : 'Modo oscuro'}
-          onClick={() => setDark((d) => !d)}
-          className="navbar-logout-btn"
-        >
-          {dark ? '☀️' : '🌙'}
-        </button>
-
         {sessionUser ? (
           <>
             <span className="navbar-user-pill" title={sessionUser.email}>
@@ -72,6 +62,16 @@ export default function Navbar({ sessionUser, onLogout }: Props) {
             Iniciar sesion
           </Link>
         )}
+
+        <button
+          type="button"
+          aria-label={dark ? 'Modo claro' : 'Modo oscuro'}
+          title={dark ? 'Modo claro' : 'Modo oscuro'}
+          onClick={() => setDark((d) => !d)}
+          className="navbar-logout-btn"
+        >
+          {dark ? '☀️' : '🌙'}
+        </button>
       </div>
     </nav>
   )
