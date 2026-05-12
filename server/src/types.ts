@@ -39,3 +39,16 @@ export type NewFoodEntry = Omit<FoodEntry, 'id'>
 export type NewExerciseEntry = Omit<ExerciseEntry, 'id'>
 export type NewRoutine = Pick<Routine, 'name'>
 export type NewDiet = Pick<Diet, 'name' | 'targetCalories'>
+
+export type ActivityLevel = 'Baja' | 'Media' | 'Alta'
+
+export type UserProfile = {
+  weight: number
+  objective: string
+  activity: ActivityLevel
+  targetCalories: number
+}
+
+export type Profiles = {
+  [email: string]: UserProfile
+}

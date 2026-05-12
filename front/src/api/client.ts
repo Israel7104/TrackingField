@@ -10,6 +10,13 @@ import type {
   Routine,
 } from '../types'
 
+export type UserProfile = {
+  weight: number
+  objective: string
+  activity: 'Baja' | 'Media' | 'Alta'
+  targetCalories: number
+}
+
 const rawApiBaseUrl = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '')
 const API_BASE_URL = rawApiBaseUrl.replace(/\/$/, '')
 
@@ -69,6 +76,15 @@ async function request<T>(path: string, init?: RequestInitWithBody) {
 export const apiClient = {
   getDashboard() {
     return request<DashboardData>('/dashboard')
+  },
+  getProfile(email: string) {
+    return request<UserProfile>(`/profile?email=${encodeURIComponent(email)}`)
+  },
+  setProfile(email: string, profile: UserProfile) {
+    return request<UserProfile>(`/profile?email=${encodeURIComponent(email)}`, {
+      method: 'POST',
+      body: profile,
+    })
   },
   createFood(food: NewFoodEntry) {
     return request<FoodEntry>('/foods', { method: 'POST', body: food })

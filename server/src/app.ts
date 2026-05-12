@@ -5,6 +5,7 @@ import { dashboardRouter } from './routes/dashboardRoutes.js'
 import { dietRouter } from './routes/dietRoutes.js'
 import { exerciseRouter } from './routes/exerciseRoutes.js'
 import { foodRouter } from './routes/foodRoutes.js'
+import { profileRouter } from './routes/profileRoutes.js'
 import { routineRouter } from './routes/routineRoutes.js'
 
 function isVercelPreviewOrigin(origin: string) {
@@ -45,6 +46,7 @@ export function createApp() {
   app.use('/api/v1', foodRouter)
   app.use('/api/v1', exerciseRouter)
   app.use('/api/v1', dietRouter)
+  app.use('/api/v1', profileRouter)
   app.use('/api/v1', routineRouter)
 
   app.use((_request, response) => {
