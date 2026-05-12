@@ -42,6 +42,14 @@ body.dark {
   color: var(--text);
 }
 
+body.dark::before {
+  display: none;
+}
+
+html:has(body.dark) {
+  background: #181614;
+}
+
 * {
   box-sizing: border-box;
 }
