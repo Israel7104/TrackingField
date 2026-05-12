@@ -134,6 +134,7 @@ Frontend local por defecto: `http://localhost:5173`
 3. Build Command: `npm run build`.
 4. Output Directory: `dist`.
 5. Define `VITE_API_URL` con la URL publica de la API.
+6. En Firebase Console > Authentication > Settings > Authorized domains, agrega tu dominio de Vercel (por ejemplo: `tracking-field-ppeil6oi0-israel7104s-projects.vercel.app`) y `localhost` para desarrollo.
 
 ### Backend
 
