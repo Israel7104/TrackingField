@@ -33,6 +33,7 @@ export type DashboardData = {
   exercises: ExerciseEntry[]
   routines: Routine[]
   diets: Diet[]
+  profiles?: Record<string, UserProfile>
 }
 
 export type NewFoodEntry = Omit<FoodEntry, 'id'>

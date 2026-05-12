@@ -1,4 +1,4 @@
-import { storeService } from './storeService.js'
+import { readStore, writeStore } from './storeService.js'
 import type { UserProfile } from '../types.js'
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -28,34 +28,32 @@ function validateProfile(profile: unknown): profile is UserProfile {
   )
 }
 
-export const profileService = {
-  getProfile(email: string): UserProfile {
-    const normalized = normalizeEmail(email)
-    const store = storeService.read()
+export async function getProfile(email: string): Promise<UserProfile> {
+  const normalized = normalizeEmail(email)
+  const store = await readStore()
 
-    if (!store.profiles || !store.profiles[normalized]) {
-      return DEFAULT_PROFILE
-    }
+  if (!store.profiles || !store.profiles[normalized]) {
+    return DEFAULT_PROFILE
+  }
 
-    const stored = store.profiles[normalized]
-    return validateProfile(stored) ? stored : DEFAULT_PROFILE
-  },
+  const stored = store.profiles[normalized]
+  return validateProfile(stored) ? stored : DEFAULT_PROFILE
+}
 
-  setProfile(email: string, profile: UserProfile): UserProfile {
-    const normalized = normalizeEmail(email)
-    const store = storeService.read()
+export async function setProfile(email: string, profile: UserProfile): Promise<UserProfile> {
+  const normalized = normalizeEmail(email)
+  const store = await readStore()
 
-    if (!store.profiles) {
-      store.profiles = {}
-    }
+  if (!store.profiles) {
+    store.profiles = {}
+  }
 
-    if (!validateProfile(profile)) {
-      throw new Error('Datos del perfil inválidos.')
-    }
+  if (!validateProfile(profile)) {
+    throw new Error('Datos del perfil inválidos.')
+  }
 
-    store.profiles[normalized] = profile
-    storeService.write(store)
+  store.profiles[normalized] = profile
+  await writeStore(store)
 
-    return profile
-  },
+  return profile
 }

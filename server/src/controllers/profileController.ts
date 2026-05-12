@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import { profileService } from '../services/profileService.js'
+import { getProfile, setProfile } from '../services/profileService.js'
 
 function extractEmail(req: Request): string | null {
   const email = req.query.email
@@ -12,7 +12,7 @@ function extractEmail(req: Request): string | null {
 }
 
 export const profileController = {
-  getProfile(req: Request, res: Response) {
+  async getProfile(req: Request, res: Response) {
     try {
       const email = extractEmail(req)
 
@@ -21,7 +21,7 @@ export const profileController = {
         return
       }
 
-      const profile = profileService.getProfile(email)
+      const profile = await getProfile(email)
       res.status(200).json(profile)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error interno del servidor.'
@@ -29,7 +29,7 @@ export const profileController = {
     }
   },
 
-  setProfile(req: Request, res: Response) {
+  async setProfile(req: Request, res: Response) {
     try {
       const email = extractEmail(req)
 
@@ -38,7 +38,7 @@ export const profileController = {
         return
       }
 
-      const profile = profileService.setProfile(email, req.body)
+      const profile = await setProfile(email, req.body)
       res.status(200).json(profile)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error interno del servidor.'
