@@ -1,3 +1,103 @@
+/* ── Dark mode overrides ──────────────────────────── */
+
+body.dark .app-navbar {
+  background: rgba(26, 24, 22, 0.92);
+  border-bottom: 1px solid var(--border);
+}
+body.dark .hero-copy {
+  background: linear-gradient(135deg, #23201c 80%, #181614 100%) !important;
+  color: var(--text-h) !important;
+}
+body.dark .hero-panel {
+  background: #1e1b17 !important;
+  border-color: var(--border) !important;
+}
+body.dark .panel-card,
+body.dark .accent-card,
+body.dark .muted-card {
+  background: #27231e !important;
+  color: var(--text-h) !important;
+  border-color: var(--border) !important;
+}
+body.dark .panel-card strong,
+body.dark .panel-card b,
+body.dark .panel-card p,
+body.dark .accent-card strong,
+body.dark .accent-card p,
+body.dark .muted-card strong,
+body.dark .muted-card p {
+  color: var(--text-h) !important;
+}
+body.dark .panel-kicker {
+  color: var(--muted-strong) !important;
+}
+body.dark .accent-card {
+  background: linear-gradient(160deg, rgba(255, 138, 76, 0.10), #27231e 90%) !important;
+}
+body.dark .muted-card {
+  background: linear-gradient(160deg, rgba(41, 65, 56, 0.15), #27231e 90%) !important;
+}
+body.dark .module-card,
+body.dark .vision-card,
+body.dark .roadmap-card,
+body.dark .metric-card {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-h);
+}
+body.dark .navbar-link {
+  color: var(--muted-strong);
+}
+body.dark .navbar-link--active {
+  background: var(--accent);
+  color: #1a1816;
+}
+body.dark .navbar-user-pill {
+  background: rgba(255, 186, 140, 0.08);
+  color: var(--text-h);
+}
+body.dark .navbar-logout-btn {
+  background: rgba(26, 24, 22, 0.75);
+  color: var(--text-h);
+  border-color: var(--border);
+}
+body.dark .plan-delete-btn {
+  background: var(--surface);
+  color: var(--text-h);
+  border-color: var(--border);
+}
+body.dark .form-action {
+  background: linear-gradient(135deg, #ff8a4c, #b54730);
+  color: #1a1816;
+}
+body.dark .entry-form input,
+body.dark .entry-select {
+  background: #23201c;
+  color: var(--text-h);
+  border-color: var(--border);
+}
+body.dark .entry-form input:focus,
+body.dark .entry-select:focus {
+  border-color: var(--accent);
+}
+body.dark .auth-form input {
+  background: #23201c;
+  color: var(--text-h);
+  border-color: var(--border);
+}
+body.dark .auth-form input:focus {
+  border-color: var(--accent);
+}
+body.dark .google-auth-btn {
+  background: #27231e;
+  color: var(--text-h);
+  border-color: var(--border);
+}
+body.dark .google-auth-btn:hover {
+  background: #2e2a25;
+  border-color: var(--accent);
+}
+
 /* ── Navbar ───────────────────────────────────────── */
 
 .app-navbar {

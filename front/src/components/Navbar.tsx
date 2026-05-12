@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { appRoutes } from '../utils/routes'
+import { useEffect, useState } from 'react'
 
 type SessionUser = {
   name: string
@@ -20,6 +21,13 @@ const links = [
 
 export default function Navbar({ sessionUser, onLogout }: Props) {
   const { pathname } = useLocation()
+  const [dark, setDark] = useState(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
+
+  useEffect(() => {
+    document.body.classList.toggle('dark', dark)
+  }, [dark])
 
   return (
     <nav className="app-navbar">
@@ -36,6 +44,16 @@ export default function Navbar({ sessionUser, onLogout }: Props) {
             {label}
           </Link>
         ))}
+
+        <button
+          type="button"
+          aria-label={dark ? 'Modo claro' : 'Modo oscuro'}
+          title={dark ? 'Modo claro' : 'Modo oscuro'}
+          onClick={() => setDark((d) => !d)}
+          className="navbar-logout-btn"
+        >
+          {dark ? '☀️' : '🌙'}
+        </button>
 
         {sessionUser ? (
           <>

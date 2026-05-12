@@ -25,6 +25,23 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  transition: background 0.2s, color 0.2s;
+}
+
+body.dark {
+  --text: #c9b8ae;
+  --text-h: #f7f2ed;
+  --muted-strong: #ffbfa3;
+  --bg: #181614;
+  --surface: #1a1816;
+  --border: #3a2e23;
+  --accent: #ff8a4c;
+  --shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: #181614;
+  color: var(--text);
+}
+
 * {
   box-sizing: border-box;
 }
