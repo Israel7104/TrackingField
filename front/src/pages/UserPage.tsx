@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { apiClient } from '../api/client'
 import MetricCard from '../components/MetricCard'
 import { useAppContext } from '../context/AppContext'
 
@@ -20,55 +21,29 @@ const DEFAULT_PROFILE: UserProfile = {
   targetCalories: 2800,
 }
 
-function profileStorageKey(email: string) {
-  return `tf_profile_${email.trim().toLowerCase()}`
-}
+function UserProfileEditor({ email }: { email: string }) {
+  const [profileForm, setProfileForm] = useState<UserProfile>(DEFAULT_PROFILE)
+  const [profileMessage, setProfileMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
-function normalizeProfile(raw: unknown): UserProfile {
-  if (!raw || typeof raw !== 'object') {
-    return DEFAULT_PROFILE
-  }
-
-  const candidate = raw as Partial<UserProfile>
-  const weight = typeof candidate.weight === 'number' && candidate.weight > 0
-    ? candidate.weight
-    : DEFAULT_PROFILE.weight
-  const objective = typeof candidate.objective === 'string' && candidate.objective.trim().length > 0
-    ? candidate.objective.trim()
-    : DEFAULT_PROFILE.objective
-  const activity: ActivityLevel = candidate.activity === 'Baja' || candidate.activity === 'Media' || candidate.activity === 'Alta'
-    ? candidate.activity
-    : DEFAULT_PROFILE.activity
-  const targetCalories = typeof candidate.targetCalories === 'number' && candidate.targetCalories > 0
-    ? candidate.targetCalories
-    : DEFAULT_PROFILE.targetCalories
-
-  return {
-    weight,
-    objective,
-    activity,
-    targetCalories,
-  }
-}
-
-function loadProfile(email: string): UserProfile {
-  try {
-    const raw = localStorage.getItem(profileStorageKey(email))
-    if (!raw) {
-      return DEFAULT_PROFILE
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        setIsLoading(true)
+        const profile = await apiClient.getProfile(email)
+        setProfileForm(profile)
+      } catch (error) {
+        console.error('Error cargando perfil:', error)
+        setProfileForm(DEFAULT_PROFILE)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    return normalizeProfile(JSON.parse(raw))
-  } catch {
-    return DEFAULT_PROFILE
-  }
-}
+    loadProfile()
+  }, [email])
 
-function UserProfileEditor({ email }: { email: string }) {
-  const [profileForm, setProfileForm] = useState<UserProfile>(() => loadProfile(email))
-  const [profileMessage, setProfileMessage] = useState('')
-
-  function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextProfile = {
@@ -88,9 +63,27 @@ function UserProfileEditor({ email }: { email: string }) {
       return
     }
 
-    setProfileForm(nextProfile)
-    localStorage.setItem(profileStorageKey(email), JSON.stringify(nextProfile))
-    setProfileMessage('Perfil actualizado correctamente.')
+    try {
+      setIsLoading(true)
+      await apiClient.setProfile(email, nextProfile)
+      setProfileForm(nextProfile)
+      setProfileMessage('Perfil actualizado correctamente.')
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Error al guardar perfil.'
+      setProfileMessage(errorMsg)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <article className="module-card user-card">
+        <span className="module-tag">Usuario</span>
+        <h3>Datos del perfil</h3>
+        <p className="auth-demo-note">Cargando perfil...</p>
+      </article>
+    )
   }
 
   return (
@@ -162,7 +155,9 @@ function UserProfileEditor({ email }: { email: string }) {
           </select>
         </label>
 
-        <button type="submit" className="form-action">Guardar perfil</button>
+        <button type="submit" className="form-action" disabled={isLoading}>
+          {isLoading ? 'Guardando...' : 'Guardar perfil'}
+        </button>
       </form>
 
       {profileMessage && <p className="auth-demo-note">{profileMessage}</p>}
@@ -197,7 +192,6 @@ export default function UserPage() {
   } = useAppContext()
 
   const avgKcal = Math.round(totals.calories / Math.max(foods.length, 1))
-  const currentWeight = sessionUser ? loadProfile(sessionUser.email).weight : DEFAULT_PROFILE.weight
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -413,7 +407,7 @@ export default function UserPage() {
       </div>
 
       <section className="metrics-strip" aria-label="Metricas del usuario">
-        <MetricCard value={`${currentWeight.toFixed(1)} kg`} label="Peso actual" />
+        <MetricCard value="72.4 kg" label="Peso actual" />
         <MetricCard value={`${avgKcal} kcal`} label="Media por alimento" />
         <MetricCard value={`${foods.length + exercises.length}`} label="Registros totales hoy" />
       </section>
