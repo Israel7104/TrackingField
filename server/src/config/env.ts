@@ -7,6 +7,6 @@ function parseAllowedOrigins(value: string) {
 
 export const env = {
   port: Number(process.env.PORT ?? 4000),
-  allowedOrigins: parseAllowedOrigins(process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173'),
+  allowedOrigins: parseAllowedOrigins(process.env.FRONTEND_ORIGIN ?? '*'),
   allowVercelPreviews: (process.env.ALLOW_VERCEL_PREVIEWS ?? 'true').toLowerCase() === 'true',
 }

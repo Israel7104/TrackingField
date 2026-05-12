@@ -1,9 +1,13 @@
 {
-  "buildCommand": "cd front && npm run build",
+  "buildCommand": "npm --prefix server run build && npm --prefix front run build",
   "outputDirectory": "front/dist",
-  "installCommand": "cd front && npm install",
+  "installCommand": "npm --prefix server install && npm --prefix front install",
   "framework": "vite",
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
