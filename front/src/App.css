@@ -705,19 +705,22 @@
 
 .plan-toggle-btn,
 .plan-delete-btn {
-  width: 1.8rem;
-  height: 1.8rem;
-  border-radius: 8px;
+  min-width: 160px;
+  max-width: 100%;
+  padding: 0.5rem 2.2rem;
+  border-radius: 999px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--surface);
+  color: var(--text-h);
+  font-weight: 700;
+  font-size: 0.95rem;
   cursor: pointer;
-  font-size: 1.1rem;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted-strong);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, border 0.15s;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+  margin-left: 1.5rem;
+  display: inline-block;
 }
 
 .plan-toggle-btn:hover {
