@@ -17,7 +17,7 @@ TrackingField es una aplicacion fullstack para registrar alimentos, planes de di
 
 | Despliegue | URL |
 |------------|-----|
-| Frontend | [Vercel](https://tracking-field-ppeil6oi0-israel7104s-projects.vercel.app/usuario) |
+| Frontend | [Vercel](https://tracking-field-ppeil6oi0-israel7104s-projects.vercel.app) |
 
 ---
 
