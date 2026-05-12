@@ -1,27 +1,86 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { apiClient } from '../api/client'
+import { apiClient, type UserProfile } from '../api/client'
 import MetricCard from '../components/MetricCard'
 import { useAppContext } from '../context/AppContext'
 
 type ActivityLevel = 'Baja' | 'Media' | 'Alta'
-
-type UserProfile = {
-  weight: number
-  objective: string
-  activity: ActivityLevel
-  targetCalories: number
-}
 
 const DEFAULT_PROFILE: UserProfile = {
   weight: 72.4,
   objective: 'Ganar masa muscular',
   activity: 'Alta',
   targetCalories: 2800,
+  weightHistory: [{ date: new Date().toISOString(), weight: 72.4 }],
 }
 
-function UserProfileEditor({ email }: { email: string }) {
+function WeightProgressChart({ history }: { history: UserProfile['weightHistory'] }) {
+  const sortedHistory = [...history].sort((a, b) => a.date.localeCompare(b.date)).slice(-12)
+
+  if (sortedHistory.length === 0) {
+    return <p className="auth-demo-note">Aun no hay datos de peso para mostrar.</p>
+  }
+
+  const width = 460
+  const height = 180
+  const paddingX = 22
+  const paddingTop = 16
+  const paddingBottom = 34
+
+  const weights = sortedHistory.map((point) => point.weight)
+  const minWeight = Math.min(...weights)
+  const maxWeight = Math.max(...weights)
+  const range = Math.max(maxWeight - minWeight, 0.5)
+
+  const points = sortedHistory.map((point, index) => {
+    const x =
+      paddingX +
+      (index * (width - paddingX * 2)) / Math.max(sortedHistory.length - 1, 1)
+    const y =
+      paddingTop +
+      ((maxWeight - point.weight) / range) * (height - paddingTop - paddingBottom)
+
+    return { ...point, x, y }
+  })
+
+  const linePath = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ')
+
+  const firstLabel = new Date(points[0].date).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+  })
+  const lastLabel = new Date(points[points.length - 1].date).toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: 'short',
+  })
+
+  return (
+    <div className="weight-chart-card">
+      <div className="weight-chart-head">
+        <strong>Progreso de peso</strong>
+        <span>{points[points.length - 1].weight.toFixed(1)} kg actual</span>
+      </div>
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="weight-chart" role="img" aria-label="Grafica de progreso de peso">
+        <path d={`M ${paddingX} ${height - paddingBottom} H ${width - paddingX}`} className="weight-chart-axis" />
+        <path d={linePath} className="weight-chart-line" />
+        {points.map((point) => (
+          <circle key={point.date} cx={point.x} cy={point.y} r="3.5" className="weight-chart-dot" />
+        ))}
+      </svg>
+
+      <div className="weight-chart-labels">
+        <span>{firstLabel}</span>
+        <span>{lastLabel}</span>
+      </div>
+    </div>
+  )
+}
+
+function UserProfileEditor({ email, onSaved }: { email: string, onSaved: () => void }) {
   const [profileForm, setProfileForm] = useState<UserProfile>(DEFAULT_PROFILE)
   const [profileMessage, setProfileMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
@@ -65,8 +124,9 @@ function UserProfileEditor({ email }: { email: string }) {
 
     try {
       setIsLoading(true)
-      await apiClient.setProfile(email, nextProfile)
-      setProfileForm(nextProfile)
+      const savedProfile = await apiClient.setProfile(email, nextProfile)
+      setProfileForm(savedProfile)
+      onSaved()
       setProfileMessage('Perfil actualizado correctamente.')
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Error al guardar perfil.'
@@ -168,11 +228,51 @@ function UserProfileEditor({ email }: { email: string }) {
         <div><span>Actividad</span><strong>{profileForm.activity}</strong></div>
         <div><span>Kcal objetivo</span><strong>{profileForm.targetCalories.toLocaleString('es-ES')} kcal / dia</strong></div>
       </div>
+
+    </article>
+  )
+}
+
+function UserWeightProgress({ email, refreshKey }: { email: string, refreshKey: number }) {
+  const [history, setHistory] = useState<UserProfile['weightHistory']>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadWeightHistory() {
+      try {
+        setIsLoading(true)
+        const profile = await apiClient.getProfile(email)
+        setHistory(profile.weightHistory)
+      } catch (error) {
+        console.error('Error cargando historial de peso:', error)
+        setHistory([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadWeightHistory()
+  }, [email, refreshKey])
+
+  return (
+    <article className="plan-card">
+      <div className="plan-card-header">
+        <div className="plan-card-title">
+          <strong>Progreso de peso</strong>
+          <span>Historial de cambios en kg</span>
+        </div>
+      </div>
+      {isLoading ? (
+        <p className="auth-demo-note">Cargando grafica...</p>
+      ) : (
+        <WeightProgressChart history={history} />
+      )}
     </article>
   )
 }
 
 export default function UserPage() {
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [registerForm, setRegisterForm] = useState({ name: '', email: '', password: '' })
@@ -415,7 +515,11 @@ export default function UserPage() {
       <div className="inner-columns">
         <section className="inner-column">
           <h2 className="inner-section-title">Perfil</h2>
-          <UserProfileEditor key={sessionUser.email} email={sessionUser.email} />
+          <UserProfileEditor
+            key={sessionUser.email}
+            email={sessionUser.email}
+            onSaved={() => setProfileRefreshKey((current) => current + 1)}
+          />
         </section>
 
         <section className="inner-column">
@@ -477,6 +581,8 @@ export default function UserPage() {
               Accede a cada seccion para gestionar tus planes.
             </p>
           </article>
+
+          <UserWeightProgress email={sessionUser.email} refreshKey={profileRefreshKey} />
         </section>
       </div>
     </main>

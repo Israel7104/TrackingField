@@ -43,11 +43,17 @@ export type NewDiet = Pick<Diet, 'name' | 'targetCalories'>
 
 export type ActivityLevel = 'Baja' | 'Media' | 'Alta'
 
+export type WeightHistoryPoint = {
+  date: string
+  weight: number
+}
+
 export type UserProfile = {
   weight: number
   objective: string
   activity: ActivityLevel
   targetCalories: number
+  weightHistory: WeightHistoryPoint[]
 }
 
 export type Profiles = {

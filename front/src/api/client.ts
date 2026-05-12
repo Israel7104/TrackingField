@@ -15,6 +15,10 @@ export type UserProfile = {
   objective: string
   activity: 'Baja' | 'Media' | 'Alta'
   targetCalories: number
+  weightHistory: Array<{
+    date: string
+    weight: number
+  }>
 }
 
 const rawApiBaseUrl = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:4000/api/v1' : '/api/v1')

@@ -518,6 +518,62 @@ body.dark .google-auth-btn:hover {
   border-bottom: 1px solid rgba(28, 24, 22, 0.08);
 }
 
+.weight-chart-card {
+  margin-top: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 0.9rem;
+}
+
+.weight-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.weight-chart-head strong {
+  font-size: 0.95rem;
+  color: var(--text-h);
+}
+
+.weight-chart-head span {
+  font-size: 0.8rem;
+  color: var(--muted-strong);
+  white-space: nowrap;
+}
+
+.weight-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.weight-chart-axis {
+  stroke: var(--border);
+  stroke-width: 1.2;
+}
+
+.weight-chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+}
+
+.weight-chart-dot {
+  fill: var(--accent);
+}
+
+.weight-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  color: var(--muted-strong);
+}
+
 .user-auth-shell {
   display: grid;
   grid-template-columns: minmax(0, 640px);
